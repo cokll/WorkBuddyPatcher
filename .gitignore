@@ -1,0 +1,4 @@
+*.bak
+rotate_sdk_logs.log
+wbpatcher-error.log
+rotate_sdk_logs.js
