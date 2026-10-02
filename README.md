@@ -20,7 +20,7 @@ WorkBuddy AI 桌面版是 Electron 应用,内置一个 headless CLI(`codebuddy`)
 
 ## 目标文件与关键约束
 
-- **CLI bundle**:`C:\Program Files\WorkBuddy*\resources\app.asar.unpacked\cli\dist\codebuddy*.(js|mjs)`。`app.asar.unpacked` 下的文件是未打包、未签名的明文 minified JS,可以安全原位修改。
+- **CLI bundle**:`C:\Program Files\WorkBuddy*\resources\app.asar.unpacked\cli\dist\codebuddy*.(js|mjs)`。同机多安装(如 `WorkBuddy` 与 `WorkBuddyAI`)会被通配同时发现、逐个补丁。`app.asar.unpacked` 下的文件是未打包、未签名的明文 minified JS,可以安全原位修改。
 - **app.asar 本体不可改**:带完整性保护,原位等长修改无效(本项目早期尝试已废弃)。因此桌面端(asar 内)的行为改不了——涉及桌面端的补丁都绕道:补丁五走 CLI 的用户设置文件,补丁七走外部计划任务。
 - **产品更新**:更新后 dist 回到原版,重开工具重新应用即可。锚点是**规则代码特征**(正则),与版本字节偏移无关;若新版本改动了代码形状,状态会显示 `⚠ 无锚点` 而不是盲改。
 
@@ -148,10 +148,10 @@ node _gen_payloads.js && build.bat
 
 ## 产品更新后怎么办
 
-1. 重开工具 → **刷新状态**:dist 补丁显示"未应用"的重新勾选应用即可;
+1. 重开工具 → **刷新状态**:dist 补丁显示"未应用"的重新勾选应用即可(多安装会全部列出,逐个处理);
 2. 显示 `⚠ 无锚点` 说明新版本改动了相关代码形状:按新代码更新 `scripts/` 对应脚本的锚点,然后 `node _gen_payloads.js && build.bat`;
 3. **产品刚更新后不要还原**(备份属于旧版本,还原会版本回退),直接重打;
-4. 补丁五、七基于设置文件/计划任务,产品更新通常不受影响。
+4. 补丁五、七基于设置文件/计划任务,产品更新通常不受影响(补丁五依赖 `~/.workbuddy*` 路径,若 junction/数据盘路径变化需重新应用一次)。
 
 ## FAQ
 
@@ -167,6 +167,13 @@ node _gen_payloads.js && build.bat
 - **补丁七**:任务往返(还原→未应用→应用→重建)通过;PowerShell 确认任务动作 `node.exe` + `rotate_sdk_logs.js --keep-days 0`、间隔 PT10M、LastTaskResult=0;脚本落盘与源文件逐字节一致
 - **实跑效果**:SSE 刷屏日志归零(原单日 165 万条);SDK 会话日志 09-14~09-28 历史残留(含 1.1GB/781MB 大文件、lock、zip 半成品)全部清理,E 盘回收约 7GB;今日日志被 100MB 上限管住
 - **黑窗修复**:GUI 为 winexe 无控制台窗口,控制台模式经 AttachConsole 输出正常
+
+## 验证记录(2026-10):新旧版本双安装
+
+- **多安装场景实跑**:同机存在 `C:\Program Files\WorkBuddy`(5.6.2, 9/21 构建, 已补丁)与 `C:\Program Files\WorkBuddyAI`(5.6.2, 9/23 构建, 全新原版)两个安装。新版落地后旧锚点**全部命中**(5.6.2 内部重构不影响这几个函数的代码形状),无需改正则;
+- 对新安装的两个 bundle(`codebuddy-headless.js` / `codebuddy-lite-wb.mjs`)按 一→二→三→四→六 顺序用同源 JS 脚本注入,10 处修改、10 次 `node --check` 全部通过;
+- **补丁五/七天然跨安装覆盖**:`~/.workbuddy-ai`、`~/.workbuddy` 是指向数据盘的 junction,两份 settings 的 `defaultMode` 已是 `fullAccess`/`bypassPermissions`;计划任务扫描根目录(含 `E:\soft\WorkBuddy\.workbuddy*\logs`)与安装目录无关,新安装直接纳入管辖;
+- 最终状态:2 安装 × 2 bundle × 5 文本补丁 = 全部 `✔ 已应用`;备份链每 bundle 5 个,`.compactfree.bak` 为干净原版。
 
 ## License
 
