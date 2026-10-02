@@ -32,7 +32,7 @@ function discoverTargets(args) {
       const st = fs.statSync(a);
       if (st.isDirectory()) {
         for (const f of fs.readdirSync(a)) {
-          if (/^codebuddy.*\.js$/.test(f)) out.push(path.join(a, f));
+          if (/^codebuddy.*\.(js|mjs)$/.test(f)) out.push(path.join(a, f));
         }
       } else out.push(a);
     }
@@ -44,7 +44,7 @@ function discoverTargets(args) {
     const dist = path.join('C:\\Program Files', entry, 'resources', 'app.asar.unpacked', 'cli', 'dist');
     if (!fs.existsSync(dist)) continue;
     for (const f of fs.readdirSync(dist)) {
-      if (/^codebuddy.*\.js$/.test(f)) out.push(path.join(dist, f));
+      if (/^codebuddy.*\.(js|mjs)$/.test(f)) out.push(path.join(dist, f));
     }
   }
   return out;
